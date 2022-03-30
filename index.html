@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>YAML translation parser</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" integrity="sha512-CSBhVREyzHAjAFfBlIBakjoRUKp5h7VSweP0InR/pAJyptH7peuhCsqAI/snV+TwZmXZqoUklpXp6R6wMnYf5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.10/clipboard.min.js"></script>
+
+    <style>
+      textarea {
+        height: 100%;
+      }
+
+      .translation {
+        margin-bottom: 16px;
+      }
+
+      .translation p {
+        margin-bottom: 0px;
+      }
+
+      .copy {
+        cursor: pointer;
+      }
+
+      .copy:hover {
+        text-decoration: underline;
+        color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/x-template" id="page-contents">
+      <div>
+        <main class="container">
+          <div role="document">
+            <div class="grid">
+              <div>
+                <h2>YAML contents</h2>
+                <textarea v-model="yaml"></textarea>
+              </div>
+              <div>
+                <h2>Translations</h2>
+                <div class="translation" v-for="(translation, index) in translations">
+                  <p><b>{{ translation.key }}</b> (<span v-bind:data-clipboard-target="'#' + translation.id" class="copy">copy</span>)</p>
+                  <p><pre v-bind:id="translation.id">{{ translation.value }}</pre></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </script>
+    <script type="module">
+
+      const flatten = (obj, parentKey = '') => {
+        const keys = Object.keys(obj);
+        return keys.flatMap((key) => {
+          if (typeof obj[key] === 'string') {
+            return { key: parentKey + key, value: obj[key] };
+          } else {
+            return flatten(obj[key], `${key}.`);
+          }
+        })
+      }
+
+      const exampleYaml = `jp:
+  hello: こんにちは`
+
+      var app = new Vue({
+        el: '#app',
+        template: '#page-contents',
+        data: function() {
+          return {
+            yaml: null,
+            translations: []
+          }
+        },
+        mounted: function() {
+          this.yaml = localStorage.getItem('yaml') || exampleYaml
+        },
+        watch: {
+          yaml: function(newValue) {
+            localStorage.setItem('yaml', newValue);
+            var doc = jsyaml.load(newValue);
+            this.translations = flatten(doc).map((item) => ({ ...item, id: item.key.replace(/\./g, '-') }));
+            new ClipboardJS('.copy');
+          }
+        }
+      })
+    </script>
+  </body>
+</html>
